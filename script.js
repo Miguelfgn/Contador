@@ -1,103 +1,87 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Referencias a los elementos del DOM
     const daysCounterElement = document.getElementById('daysCounter');
     const recordDaysElement = document.getElementById('recordDays');
     const resetButton = document.getElementById('resetButton');
     const statusMessageElement = document.getElementById('statusMessage');
 
-    let daysWithoutAccident = 0;
-    let recordAccidentFreeDays = 0;
+    // === CAMBIOS EN LAS VARIABLES DE INICIO ===
+    // 1. Aquí se definen los valores iniciales.
+    // 2. Estos valores se usarán si el localStorage está vacío.
+    let daysWithoutAccident = 30;
+    let recordAccidentFreeDays = 121;
+    const initialStartDate = new Date('2025-07-01T08:00:00');
+    let lastResetDate = initialStartDate.getTime();
+    
+    // Función para guardar los datos en localStorage
+    function saveData() {
+        localStorage.setItem('daysWithoutAccident', daysWithoutAccident);
+        localStorage.setItem('recordAccidentFreeDays', recordAccidentFreeDays);
+        localStorage.setItem('lastResetDate', lastResetDate);
+    }
 
-    // Almacenar en localStorage para persistencia
-    const STORAGE_KEY_DAYS = 'daysWithoutAccident';
-    const STORAGE_KEY_RECORD = 'recordAccidentFreeDays';
-    const STORAGE_KEY_LAST_RESET = 'lastResetDate';
-
-    // Función para cargar los datos al iniciar
+    // Función para cargar los datos desde localStorage
     function loadData() {
-        daysWithoutAccident = parseInt(localStorage.getItem(STORAGE_KEY_DAYS) || '0', 10);
-        recordAccidentFreeDays = parseInt(localStorage.getItem(STORAGE_KEY_RECORD) || '0', 10);
-        
-        // Calcular días desde el último reseteo para actualizar el contador
-        const lastResetDate = localStorage.getItem(STORAGE_KEY_LAST_RESET);
-        if (lastResetDate) {
-            const lastReset = new Date(lastResetDate);
-            const now = new Date();
-            const diffTime = Math.abs(now.getTime() - lastReset.getTime());
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            
-            // Si ha pasado al menos un día completo desde el último reinicio, actualizar el contador
-            // y asegurarse de que no se reinició en el mismo día varias veces.
-            if (diffDays > daysWithoutAccident) {
-                daysWithoutAccident = diffDays;
-                saveData(); // Guardar el contador actualizado
-            }
+        const storedDays = localStorage.getItem('daysWithoutAccident');
+        const storedRecord = localStorage.getItem('recordAccidentFreeDays');
+        const storedResetDate = localStorage.getItem('lastResetDate');
+
+        // === CAMBIO CLAVE AQUÍ ===
+        // Si el localStorage está vacío, USA los valores que definiste arriba.
+        // Si no está vacío, usa los que ya estaban guardados.
+        if (storedDays !== null) {
+            daysWithoutAccident = parseInt(storedDays, 10);
+            recordAccidentFreeDays = parseInt(storedRecord, 10);
+            lastResetDate = parseInt(storedResetDate, 10);
         } else {
-            // Si no hay fecha de último reseteo, es la primera vez que se carga o se borró el localStorage
-            // Establecer la fecha actual como el inicio del conteo
-            localStorage.setItem(STORAGE_KEY_LAST_RESET, new Date().toISOString());
+            // Cuando no hay datos guardados, el script usará los valores de 'daysWithoutAccident',
+            // 'recordAccidentFreeDays' y 'lastResetDate' que definiste arriba.
+            // Simplemente guardamos estos valores por primera vez.
+            saveData();
         }
 
-        updateDisplay();
+        updateUI();
     }
 
-    // Función para guardar los datos
-    function saveData() {
-        localStorage.setItem(STORAGE_KEY_DAYS, daysWithoutAccident.toString());
-        localStorage.setItem(STORAGE_KEY_RECORD, recordAccidentFreeDays.toString());
-    }
-
-    // Función para actualizar la visualización en el HTML
-    function updateDisplay() {
+    // Función para actualizar la interfaz de usuario
+    function updateUI() {
         daysCounterElement.textContent = daysWithoutAccident;
         recordDaysElement.textContent = recordAccidentFreeDays;
         
+        // Mensaje de estado
         if (daysWithoutAccident > recordAccidentFreeDays) {
-            statusMessageElement.textContent = "¡Hemos superado nuestro récord anterior!";
-            recordAccidentFreeDays = daysWithoutAccident; // Actualizar el récord automáticamente
-            saveData();
-        } else if (daysWithoutAccident === recordAccidentFreeDays && daysWithoutAccident > 0) {
-            statusMessageElement.textContent = "¡Estamos igualando nuestro récord!";
+            statusMessageElement.textContent = '¡Felicidades, has superado el récord!';
+            statusMessageElement.style.color = '#27ae60';
         } else {
-            statusMessageElement.textContent = ""; // Limpiar el mensaje si no hay récord
+            statusMessageElement.textContent = 'El récord a superar es de ' + recordAccidentFreeDays + ' días.';
+            statusMessageElement.style.color = '#34495e';
         }
     }
 
-    // Función para reiniciar el contador
-    function resetCounter() {
-        if (confirm('¿Estás seguro de que quieres reiniciar el contador? Esto indicaría un accidente.')) {
-            if (daysWithoutAccident > recordAccidentFreeDays) {
-                recordAccidentFreeDays = daysWithoutAccident; // Actualizar el récord si se superó
-            }
-            daysWithoutAccident = 0;
-            localStorage.setItem(STORAGE_KEY_LAST_RESET, new Date().toISOString()); // Guardar la fecha de reinicio
+    // Función principal para actualizar el contador
+    function updateCounter() {
+        const now = new Date().getTime();
+        const differenceInDays = Math.floor((now - lastResetDate) / (1000 * 60 * 60 * 24));
+        
+        if (differenceInDays > daysWithoutAccident) {
+            daysWithoutAccident = differenceInDays;
             saveData();
-            updateDisplay();
-            statusMessageElement.textContent = "¡Contador reiniciado! Empecemos de nuevo el camino a cero accidentes.";
+            updateUI();
         }
     }
 
-    // Event listener para el botón de reinicio
-    resetButton.addEventListener('click', resetCounter);
-
-    // Cargar los datos al iniciar la página
-    loadData();
-
-    // Actualizar el contador de días cada 24 horas (opcional, para que el contador avance automáticamente)
-    // Para propósitos de demostración local, puedes comentar esto o ajustar el intervalo para pruebas.
-    // En un entorno de producción, un servidor podría encargarse de esto o podrías usar un servicio más robusto.
-    setInterval(() => {
-        const lastResetDate = localStorage.getItem(STORAGE_KEY_LAST_RESET);
-        if (lastResetDate) {
-            const lastReset = new Date(lastResetDate);
-            const now = new Date();
-            const diffTime = Math.abs(now.getTime() - lastReset.getTime());
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)); // Usar floor para evitar incrementar antes de las 24h
-            
-            if (diffDays > daysWithoutAccident) {
-                daysWithoutAccident = diffDays;
-                saveData();
-                updateDisplay();
-            }
+    // Evento para el botón de reinicio
+    resetButton.addEventListener('click', () => {
+        if (daysWithoutAccident > recordAccidentFreeDays) {
+            recordAccidentFreeDays = daysWithoutAccident;
         }
-    }, 1000 * 60 * 60); // Actualizar cada hora para asegurar que se detecta el cambio de día.
+        daysWithoutAccident = 0;
+        lastResetDate = new Date().getTime();
+        saveData();
+        updateUI();
+    });
+
+    // Carga inicial de los datos y actualización del contador
+    loadData();
+    setInterval(updateCounter, 3600000); // Actualiza cada hora (3600000 ms)
 });
