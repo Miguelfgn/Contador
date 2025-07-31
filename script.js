@@ -20,28 +20,27 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('lastResetDate', lastResetDate);
     }
 
-    // Función para cargar los datos desde localStorage
-    function loadData() {
-        const storedDays = localStorage.getItem('daysWithoutAccident');
-        const storedRecord = localStorage.getItem('recordAccidentFreeDays');
-        const storedResetDate = localStorage.getItem('lastResetDate');
+    // Función para cargar los datos desde localStorage de forma robusta
+function loadData() {
+    const storedDays = localStorage.getItem('daysWithoutAccident');
+    const storedRecord = localStorage.getItem('recordAccidentFreeDays');
+    const storedResetDate = localStorage.getItem('lastResetDate');
 
-        // === CAMBIO CLAVE AQUÍ ===
-        // Si el localStorage está vacío, USA los valores que definiste arriba.
-        // Si no está vacío, usa los que ya estaban guardados.
-        if (storedDays !== null) {
-            daysWithoutAccident = parseInt(storedDays, 10);
-            recordAccidentFreeDays = parseInt(storedRecord, 10);
-            lastResetDate = parseInt(storedResetDate, 10);
-        } else {
-            // Cuando no hay datos guardados, el script usará los valores de 'daysWithoutAccident',
-            // 'recordAccidentFreeDays' y 'lastResetDate' que definiste arriba.
-            // Simplemente guardamos estos valores por primera vez.
-            saveData();
-        }
-
-        updateUI();
+    // Si no hay datos, USAMOS los valores iniciales y los guardamos
+    if (storedDays === null || storedRecord === null || storedResetDate === null) {
+        daysWithoutAccident = 30; // Tus días iniciales
+        recordAccidentFreeDays = 121; // Tu récord inicial
+        const initialStartDate = new Date('2025-07-01T08:00:00');
+        lastResetDate = initialStartDate.getTime();
+        saveData(); // Guardamos estos valores por primera vez
+    } else {
+        // Si hay datos, los cargamos
+        daysWithoutAccident = parseInt(storedDays, 10);
+        recordAccidentFreeDays = parseInt(storedRecord, 10);
+        lastResetDate = parseInt(storedResetDate, 10);
     }
+    updateUI();
+}
 
     // Función para actualizar la interfaz de usuario
     function updateUI() {
