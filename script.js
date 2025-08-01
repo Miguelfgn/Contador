@@ -20,25 +20,31 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('lastResetDate', lastResetDate);
     }
 
-    // Función para cargar los datos desde localStorage de forma robusta
+   // Función para cargar los datos desde localStorage de forma robusta
 function loadData() {
-    const storedDays = localStorage.getItem('daysWithoutAccident');
     const storedRecord = localStorage.getItem('recordAccidentFreeDays');
     const storedResetDate = localStorage.getItem('lastResetDate');
 
-    // Si no hay datos, USAMOS los valores iniciales y los guardamos
-    if (storedDays === null || storedRecord === null || storedResetDate === null) {
-        daysWithoutAccident = 30; // Tus días iniciales
-        recordAccidentFreeDays = 121; // Tu récord inicial
+    // Si el récord está vacío, usamos el valor inicial. Si no, lo cargamos.
+    if (storedRecord === null) {
+        recordAccidentFreeDays = 121;
+    } else {
+        recordAccidentFreeDays = parseInt(storedRecord, 10);
+    }
+
+    // Si la fecha de inicio está vacía, usamos la fecha inicial.
+    if (storedResetDate === null) {
         const initialStartDate = new Date('2025-07-01T08:00:00');
         lastResetDate = initialStartDate.getTime();
-        saveData(); // Guardamos estos valores por primera vez
     } else {
-        // Si hay datos, los cargamos
-        daysWithoutAccident = parseInt(storedDays, 10);
-        recordAccidentFreeDays = parseInt(storedRecord, 10);
         lastResetDate = parseInt(storedResetDate, 10);
     }
+
+    // Siempre recalcular los días sin accidente al cargar la página
+    const now = new Date().getTime();
+    daysWithoutAccident = Math.floor((now - lastResetDate) / (1000 * 60 * 60 * 24));
+
+    saveData(); // Guardamos los nuevos valores
     updateUI();
 }
 
